@@ -1,0 +1,6 @@
+__pycache__/
+dump/
+env/
+.idea/
+.pytest_cache/
+.env
