@@ -35,7 +35,7 @@ async def send_aggregated_payments(message: types.Message):
     dt_from = query["dt_from"]
     dt_upto = query["dt_upto"]
     group_type = query["group_type"]
-    payments = aggregate_payments(dt_from, dt_upto, group_type)
+    payments = await aggregate_payments(dt_from, dt_upto, group_type)
     await message.answer(payments)
 
 

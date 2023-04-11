@@ -6,7 +6,8 @@ from dateutil.relativedelta import relativedelta
 from .deps import collection
 
 
-def aggregate_payments(dt_from: str, dt_upto: str, group_type: str) -> str:
+async def aggregate_payments(dt_from: str, dt_upto: str,
+                             group_type: str) -> str:
 
     dt_from = datetime.datetime.fromisoformat(dt_from)
     dt_upto = datetime.datetime.fromisoformat(dt_upto)
@@ -52,23 +53,19 @@ def aggregate_payments(dt_from: str, dt_upto: str, group_type: str) -> str:
         {"$sort": {"_id": 1}}
     ]
 
-    results = list(collection.aggregate(pipeline=pipeline))
+    results = collection.aggregate(pipeline=pipeline)
 
     i = 0
-    for label in answer["labels"]:
-        if i < len(results) and results[i]["_id"] == label.strftime(group_filter):
-            answer["dataset"].append(results[i]["sum_values"])
-            i += 1
-        else:
+    async for result in results:
+        while result["_id"] != answer["labels"][i].strftime(group_filter):
             answer["dataset"].append(0)
+            i += 1
+        answer["dataset"].append(result["sum_values"])
+        i += 1
 
+    answer["dataset"].extend(
+        [0 for x in range(len(answer["labels"])-len(answer["dataset"]))]
+    )
     answer["labels"] = [x.isoformat() for x in answer["labels"]]
-
+    
     return json.dumps(answer)
-
-
-"""
-    dt_from = datetime.datetime.fromisoformat("2022-09-01T00:00:00")
-    dt_upto = datetime.datetime.fromisoformat("2022-12-31T23:59:00")
-    group_type = "month"
-"""
