@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 
 from dateutil.relativedelta import relativedelta
@@ -6,14 +6,10 @@ from dateutil.relativedelta import relativedelta
 from .deps import collection
 
 
-async def aggregate_payments(dt_from: str, dt_upto: str,
+async def aggregate_payments(dt_from: datetime, dt_upto: datetime,
                              group_type: str) -> str:
 
-    dt_from = datetime.datetime.fromisoformat(dt_from)
-    dt_upto = datetime.datetime.fromisoformat(dt_upto)
-
     answer = {"dataset": [], "labels": [dt_from]}
-
     date_filter = {
         "$gte": dt_from,
         "$lte": dt_upto
@@ -54,8 +50,8 @@ async def aggregate_payments(dt_from: str, dt_upto: str,
     ]
 
     results = collection.aggregate(pipeline=pipeline)
-
     i = 0
+
     async for result in results:
         while result["_id"] != answer["labels"][i].strftime(group_filter):
             answer["dataset"].append(0)
@@ -67,5 +63,17 @@ async def aggregate_payments(dt_from: str, dt_upto: str,
         [0 for x in range(len(answer["labels"])-len(answer["dataset"]))]
     )
     answer["labels"] = [x.isoformat() for x in answer["labels"]]
-    
+
     return json.dumps(answer)
+
+
+async def get_date_range():
+    pipeline = [{
+        "$group": {
+            "_id": None,
+            "min_date": {"$min": "$dt"},
+            "max_date": {"$max": "$dt"}
+        }
+    }]
+    results = await collection.aggregate(pipeline=pipeline).to_list(length=1)
+    return results[0]["min_date"], results[0]["max_date"]
